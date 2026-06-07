@@ -16,6 +16,8 @@ from arcane.cli.cmd_tag import tag
 from arcane.cli.cmd_impact import impact
 from arcane.cli.cmd_annotate import annotate
 from arcane.cli.cmd_debt_score import debt_score
+from arcane.cli.cmd_graph import graph
+from arcane.cli.cmd_cat import cat
 
 
 @click.group()
@@ -38,3 +40,5 @@ cli.add_command(tag)
 cli.add_command(impact)
 cli.add_command(annotate)
 cli.add_command(debt_score)
+cli.add_command(graph)
+cli.add_command(cat)
