@@ -1,0 +1,225 @@
+{
+  "name": "vscode-arcane",
+  "displayName": "Arcane VCS",
+  "description": "Source control, commit history, and a commit graph for the Arcane version control system.",
+  "version": "0.1.0",
+  "publisher": "arcane",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "SCM Providers"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/.arcane"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Arcane",
+      "properties": {
+        "arcane.executablePath": {
+          "type": "string",
+          "default": "arc",
+          "markdownDescription": "Path to the `arc` executable. Supports `${workspaceFolder}`. If left as `arc`, the extension also auto-detects a virtualenv at `${workspaceFolder}/.venv` (`Scripts/arc.exe` on Windows, `bin/arc` elsewhere)."
+        },
+        "arcane.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh source control, status bar, and history when files change."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "arcane",
+          "title": "Arcane",
+          "icon": "media/arcane.svg"
+        }
+      ]
+    },
+    "views": {
+      "arcane": [
+        {
+          "id": "arcaneHistory",
+          "name": "History",
+          "contextualTitle": "Arcane History"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "arcane.refresh",
+        "title": "Arcane: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "arcane.commit",
+        "title": "Arcane: Commit",
+        "icon": "$(check)"
+      },
+      {
+        "command": "arcane.openGraph",
+        "title": "Arcane: Open Commit Graph",
+        "icon": "$(git-merge)"
+      },
+      {
+        "command": "arcane.stage",
+        "title": "Arcane: Stage",
+        "icon": "$(add)"
+      },
+      {
+        "command": "arcane.unstage",
+        "title": "Arcane: Unstage",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "arcane.stageAll",
+        "title": "Arcane: Stage All Changes",
+        "icon": "$(add)"
+      },
+      {
+        "command": "arcane.unstageAll",
+        "title": "Arcane: Unstage All",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "arcane.discard",
+        "title": "Arcane: Discard Changes",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "arcane.openChange",
+        "title": "Arcane: Open Change"
+      },
+      {
+        "command": "arcane.checkout",
+        "title": "Arcane: Checkout Branch / Tag",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "arcane.createBranch",
+        "title": "Arcane: Create Branch"
+      },
+      {
+        "command": "arcane.copyCommitHash",
+        "title": "Copy Commit Hash"
+      },
+      {
+        "command": "arcane.showCommit",
+        "title": "Show Commit Details"
+      },
+      {
+        "command": "arcane.impactCommit",
+        "title": "Show Impact (DAC)"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "arcane.commit",
+          "group": "navigation",
+          "when": "scmProvider == arcane"
+        },
+        {
+          "command": "arcane.refresh",
+          "group": "navigation",
+          "when": "scmProvider == arcane"
+        },
+        {
+          "command": "arcane.openGraph",
+          "group": "navigation",
+          "when": "scmProvider == arcane"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "arcane.stageAll",
+          "when": "scmProvider == arcane && scmResourceGroup == changes",
+          "group": "inline"
+        },
+        {
+          "command": "arcane.stageAll",
+          "when": "scmProvider == arcane && scmResourceGroup == untracked",
+          "group": "inline"
+        },
+        {
+          "command": "arcane.unstageAll",
+          "when": "scmProvider == arcane && scmResourceGroup == staged",
+          "group": "inline"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "arcane.stage",
+          "when": "scmProvider == arcane && scmResourceGroup == changes",
+          "group": "inline"
+        },
+        {
+          "command": "arcane.stage",
+          "when": "scmProvider == arcane && scmResourceGroup == untracked",
+          "group": "inline"
+        },
+        {
+          "command": "arcane.discard",
+          "when": "scmProvider == arcane && scmResourceGroup == changes",
+          "group": "1_modification"
+        },
+        {
+          "command": "arcane.unstage",
+          "when": "scmProvider == arcane && scmResourceGroup == staged",
+          "group": "inline"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "arcane.openGraph",
+          "when": "view == arcaneHistory",
+          "group": "navigation"
+        },
+        {
+          "command": "arcane.refresh",
+          "when": "view == arcaneHistory",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "arcane.showCommit",
+          "when": "view == arcaneHistory && viewItem == commit",
+          "group": "inline"
+        },
+        {
+          "command": "arcane.copyCommitHash",
+          "when": "view == arcaneHistory && viewItem == commit",
+          "group": "1_actions"
+        },
+        {
+          "command": "arcane.impactCommit",
+          "when": "view == arcaneHistory && viewItem == commit",
+          "group": "1_actions"
+        }
+      ],
+      "commandPalette": [
+        { "command": "arcane.openChange", "when": "false" },
+        { "command": "arcane.stage", "when": "false" },
+        { "command": "arcane.unstage", "when": "false" },
+        { "command": "arcane.discard", "when": "false" },
+        { "command": "arcane.copyCommitHash", "when": "false" },
+        { "command": "arcane.showCommit", "when": "false" },
+        { "command": "arcane.impactCommit", "when": "false" }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.4.0"
+  }
+}
