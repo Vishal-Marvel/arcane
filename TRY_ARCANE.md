@@ -9,9 +9,9 @@ This guide builds a small demo project from scratch and walks you through **ever
 The demo is a tiny Python app called **taskflow** with a deliberate dependency chain
 (`utils → models → service → main`) so that impact analysis has something real to trace.
 
-> Commands are shown for **Windows PowerShell** (the primary environment). Equivalent
-> bash commands are noted where they differ. Everything Arcane does is from scratch —
-> there is no Git involved.
+> Commands are shown for the **Windows Command Prompt (cmd.exe)** — the default
+> `cmd` shell, not PowerShell. Equivalent bash commands are noted where they differ.
+> Everything Arcane does is from scratch — there is no Git involved.
 
 ---
 
@@ -19,24 +19,24 @@ The demo is a tiny Python app called **taskflow** with a deliberate dependency c
 
 From the Arcane repo (`D:\projects\arcane`):
 
-```powershell
-# Create a virtualenv if you don't have one
+```bat
+REM Create a virtualenv if you don't have one
 python -m venv .venv
 
-# Install Arcane in editable mode with dev extras
+REM Install Arcane in editable mode with dev extras
 .venv\Scripts\pip install -e ".[dev]"
 ```
 
 This puts the `arc` binary on the venv's path. Verify:
 
-```powershell
+```bat
 .venv\Scripts\arc --version
 .venv\Scripts\arc --help
 ```
 
 > **Tip:** To type `arc` instead of `.venv\Scripts\arc`, activate the venv first:
-> ```powershell
-> .venv\Scripts\Activate.ps1
+> ```bat
+> .venv\Scripts\activate.bat
 > ```
 > The rest of this guide assumes the venv is **activated**, so commands read `arc ...`.
 > If you didn't activate it, prefix every `arc` with the full path.
@@ -47,15 +47,17 @@ This puts the `arc` binary on the venv's path. Verify:
 
 We create the sandbox **outside** the Arcane source repo so the two never get confused.
 
-```powershell
-# From anywhere
-New-Item -ItemType Directory -Force D:\projects\taskflow-demo
-Set-Location D:\projects\taskflow-demo
+```bat
+REM From anywhere
+mkdir D:\projects\taskflow-demo
+cd /d D:\projects\taskflow-demo
 ```
 
 > bash: `mkdir -p ~/taskflow-demo && cd ~/taskflow-demo`
 
-Now create four Python files that import each other in a chain.
+Now create four Python files that import each other in a chain. **Create these in a text
+editor** (Notepad, VS Code, etc.) — they're multi-line source files, so don't try to
+`echo` them in.
 
 **`utils.py`** — the leaf module everything depends on:
 
@@ -137,7 +139,7 @@ utils.py  ←  models.py  ←  service.py  ←  main.py
 
 (Optional) confirm the app runs:
 
-```powershell
+```bat
 python main.py
 ```
 
@@ -145,31 +147,31 @@ python main.py
 
 ## 2. Initialize an Arcane repository
 
-```powershell
+```bat
 arc init
 ```
 
 You should see `Initialized empty arc repository in ...\.arcane`. Inspect the layout:
 
-```powershell
-Get-ChildItem -Force .arcane
+```bat
+dir /a .arcane
 ```
 
 > bash: `ls -la .arcane`
 
-You'll see `HEAD`, `objects/`, `refs/`, etc. — the same primitives Git uses, built from scratch.
+You'll see `HEAD`, `objects\`, `refs\`, etc. — the same primitives Git uses, built from scratch.
 
-(Optional) Set an author so commits are attributed:
+(Optional) Set an author so commits are attributed (the `^` escapes the angle brackets in cmd):
 
-```powershell
-Set-Content .arcane\config "author=Your Name <you@example.com>"
+```bat
+echo author=Your Name ^<you@example.com^>> .arcane\config
 ```
 
 ---
 
 ## 3. Stage and check status
 
-```powershell
+```bat
 arc add utils.py models.py service.py main.py
 arc status
 ```
@@ -177,16 +179,16 @@ arc status
 `arc add` stages each file (and prints `staged: <file>`). Because of **DAC**, `arc add`
 also warns if you stage a file whose dependency is *not* staged — try it:
 
-```powershell
-# Stage ONLY the top of the chain; its dependencies are unstaged
-arc rm --cached models.py service.py utils.py   # unstage everything but main.py
+```bat
+REM Unstage everything but main.py, leaving its dependencies unstaged
+arc rm --cached models.py service.py utils.py
 arc add main.py
 ```
 
 DAC's checker notices `main.py` imports `service` (unstaged) and prints an advisory
 warning. Re-stage everything before committing:
 
-```powershell
+```bat
 arc add utils.py models.py service.py main.py
 arc status
 ```
@@ -197,7 +199,7 @@ arc status
 
 Every Arcane commit **must** carry an intent label. This is the heart of **CIT**.
 
-```powershell
+```bat
 arc commit -m "Initial taskflow skeleton" -i feat
 ```
 
@@ -206,25 +208,25 @@ Valid intents: `feat`, `fix`, `refactor`, `perf`, `debt`, `docs`, `test`, `chore
 If you omit `-i`, Arcane **prompts** you to choose one — it will not let an
 intent-less commit through:
 
-```powershell
+```bat
 arc commit -m "another change"
-# → Intent (feat, fix, refactor, perf, debt, docs, test, chore) [chore]:
+REM -> Intent (feat, fix, refactor, perf, debt, docs, test, chore) [chore]:
 ```
 
 You can attach a scope and mark breaking changes:
 
-```powershell
-# (after making a change and staging it)
+```bat
+REM (after making a change and staging it)
 arc commit -m "rename slug field" -i refactor --scope models --breaking
 ```
 
 View history with intent badges:
 
-```powershell
+```bat
 arc log
 arc log --oneline
-arc log --intent feat        # filter by intent
-arc log --timeline           # ASCII sparkline of activity by week
+arc log --intent feat
+arc log --timeline
 ```
 
 ---
@@ -234,34 +236,42 @@ arc log --timeline           # ASCII sparkline of activity by week
 Make a series of commits with different intents. This simulates a real codebase
 accumulating both healthy work and technical debt.
 
-```powershell
-# 1. A bug fix
-Add-Content service.py "`n    # FIXME: pending() ignores priority order"
+In cmd, `echo text>> file` appends one line; `echo.>> file` appends a blank line.
+
+```bat
+REM 1. A bug fix
+echo.>> service.py
+echo     # FIXME: pending() ignores priority order>> service.py
 arc add service.py
 arc commit -m "note missing priority sort" -i fix
 
-# 2. A feature
-Add-Content models.py "`n    def mark_done(self): self.done = True"
+REM 2. A feature
+echo.>> models.py
+echo     def mark_done(self): self.done = True>> models.py
 arc add models.py
 arc commit -m "add Task.mark_done" -i feat
 
-# 3. Technical debt
-Add-Content utils.py "`n# TODO: clamp() has no type validation"
+REM 3. Technical debt
+echo.>> utils.py
+echo # TODO: clamp() has no type validation>> utils.py
 arc add utils.py
 arc commit -m "acknowledge clamp validation gap" -i debt
 
-# 4. Another fix
-Add-Content main.py "`n# fixed off-by-one in display"
+REM 4. Another fix
+echo.>> main.py
+echo # fixed off-by-one in display>> main.py
 arc add main.py
 arc commit -m "fix display formatting" -i fix
 
-# 5. A refactor
-Add-Content service.py "`n    # refactored add() for clarity"
+REM 5. A refactor
+echo.>> service.py
+echo     # refactored add() for clarity>> service.py
 arc add service.py
 arc commit -m "tidy add() method" -i refactor
 ```
 
-> bash: replace `Add-Content <file> "...content"` with `echo "..." >> <file>`.
+> bash: replace each `echo.>> f` + `echo text>> f` pair with `echo "" >> f` and
+> `echo "text" >> f`.
 
 ---
 
@@ -275,9 +285,9 @@ score = (debt_count + fix_count) / max(1, feat_count + refactor_count) × 50
 
 Run it:
 
-```powershell
+```bat
 arc debt-score
-arc debt-score --window 10    # only the last 10 commits
+arc debt-score --window 10
 ```
 
 You'll get a colored bar, a label (`Healthy` / `Moderate debt` / `High debt`), and an
@@ -296,16 +306,17 @@ computed at commit time.
 
 Change the **leaf** module `utils.py` (everything depends on it) and commit:
 
-```powershell
-Add-Content utils.py "`n# touch the leaf module"
+```bat
+echo.>> utils.py
+echo # touch the leaf module>> utils.py
 arc add utils.py
 arc commit -m "tweak slugify helper" -i refactor
 ```
 
 Now ask what that commit impacts:
 
-```powershell
-arc impact            # defaults to HEAD
+```bat
+arc impact
 arc impact HEAD
 ```
 
@@ -314,8 +325,9 @@ show up as **transitively affected** — the change ripples all the way up the c
 
 Contrast with changing the **top** of the chain, which nothing imports:
 
-```powershell
-Add-Content main.py "`n# touch the entry point"
+```bat
+echo.>> main.py
+echo # touch the entry point>> main.py
 arc add main.py
 arc commit -m "tweak main entry" -i chore
 arc impact
@@ -326,8 +338,8 @@ depends on the entry point.
 
 You can run impact on any historical commit too:
 
-```powershell
-arc log --oneline           # grab a commit hash
+```bat
+arc log --oneline
 arc impact <commit-hash>
 ```
 
@@ -336,13 +348,13 @@ arc impact <commit-hash>
 ## 8. LLA — line-level annotations
 
 Annotations are persistent notes anchored to a **specific line at a specific commit**.
-They live outside the source file (in `.arcane/annotations/`) and **follow the line** as
+They live outside the source file (in `.arcane\annotations\`) and **follow the line** as
 the file changes across commits. If the line is deleted, the annotation is marked
 **orphaned** rather than silently lost.
 
 Add a few annotations (types: `note`, `warning`, `todo`, `link`):
 
-```powershell
+```bat
 arc annotate add utils.py 5 "slugify doesn't handle unicode" --type warning
 arc annotate add models.py 7 "consider a UUID instead of a slug" --type todo
 arc annotate add service.py 11 "see RFC for sort stability" --type link
@@ -350,24 +362,27 @@ arc annotate add service.py 11 "see RFC for sort stability" --type link
 
 List annotations on a file (shows current tracked line numbers + the line's content):
 
-```powershell
+```bat
 arc annotate list utils.py
 ```
 
 ### Watch annotations track line movement
 
 Insert lines **above** an annotated line, commit, then list again — the annotation's
-reported line number should shift to stay on the same logical line:
+reported line number should shift to stay on the same logical line. In cmd, build a new
+file with the header lines first, then append the old content, then replace:
 
-```powershell
-# Prepend two new lines at the top of utils.py
-$content = Get-Content utils.py
-Set-Content utils.py (@("# new header line 1", "# new header line 2") + $content)
+```bat
+echo # new header line 1> newhead.txt
+echo # new header line 2>> newhead.txt
+type utils.py >> newhead.txt
+move /y newhead.txt utils.py
 
 arc add utils.py
 arc commit -m "add header comments" -i docs
 
-arc annotate list utils.py     # the line number should have moved down by 2
+arc annotate list utils.py
+REM the line number should have moved down by 2
 ```
 
 > bash equivalent for prepending:
@@ -377,20 +392,20 @@ arc annotate list utils.py     # the line number should have moved down by 2
 
 ### See the orphaning behavior
 
-Delete the annotated line entirely, commit, and list — the annotation becomes
-`(orphaned)` instead of vanishing:
+Delete the annotated line entirely (edit `utils.py` in your text editor and remove the
+`slugify` body line), commit, and list — the annotation becomes `(orphaned)` instead of
+vanishing:
 
-```powershell
-# Delete the line slugify was annotated on, then commit
-# (edit utils.py to remove the slugify body line, then:)
+```bat
 arc add utils.py
 arc commit -m "remove old slugify body" -i refactor
-arc annotate list utils.py     # the warning is now marked (orphaned)
+arc annotate list utils.py
+REM the warning is now marked (orphaned)
 ```
 
 See the full history of annotations that ever touched a line:
 
-```powershell
+```bat
 arc annotate history utils.py 5
 ```
 
@@ -401,25 +416,28 @@ arc annotate history utils.py 5
 Arcane implements branches, refs, and a real **3-way merge** (with merge-base /
 lowest-common-ancestor detection) from scratch.
 
-```powershell
-arc branch                       # list branches (shows current with *)
-arc checkout -b feature/sorting  # create + switch to a new branch
+```bat
+arc branch
+arc checkout -b feature/sorting
 ```
 
 Make a change on the branch and commit:
 
-```powershell
-Add-Content service.py "`n    def sorted_tasks(self): return sorted(self.tasks, key=lambda t: t.priority)"
+```bat
+echo.>> service.py
+echo     def sorted_tasks(self): return sorted(self.tasks, key=lambda t: t.priority)>> service.py
 arc add service.py
 arc commit -m "add sorted_tasks" -i feat
 ```
 
 Switch back and merge:
 
-```powershell
-arc checkout main          # or 'master' — whatever your default branch is named
+```bat
+arc checkout main
 arc merge feature/sorting
 ```
+
+> Use `master` instead of `main` if that's your default branch name — check with `arc branch`.
 
 If `main` had no new commits, you'll see a **fast-forward**. If both branches diverged,
 Arcane performs a 3-way merge; on conflicting lines it writes conflict markers, sets
@@ -428,17 +446,18 @@ Arcane performs a 3-way merge; on conflicting lines it writes conflict markers, 
 To force a **real 3-way merge** (and possibly a conflict), commit to *both* branches on
 the *same lines* before merging, then resolve:
 
-```powershell
-# After a conflict:
-arc status                 # shows "You are in the middle of a merge"
-# (edit the conflicted files to resolve)
+```bat
+REM After a conflict:
+arc status
+REM shows "You are in the middle of a merge"
+REM (edit the conflicted files in your editor to resolve)
 arc add <conflicted-file>
 arc commit -m "merge feature/sorting" -i chore
 ```
 
 Clean up:
 
-```powershell
+```bat
 arc branch -d feature/sorting
 ```
 
@@ -446,29 +465,36 @@ arc branch -d feature/sorting
 
 ## 10. Tags
 
-```powershell
-arc tag v0.1.0                   # tag current HEAD
-arc tag v0.0.1 <older-hash>      # tag a specific commit
-arc tag -l                       # list tags
-arc checkout v0.1.0              # checkout a tag (detached HEAD)
-arc tag -d v0.0.1                # delete a tag
+```bat
+arc tag v0.1.0
+arc tag v0.0.1 <older-hash>
+arc tag -l
+arc checkout v0.1.0
+arc tag -d v0.0.1
 ```
 
 ---
 
 ## 11. Diffing
 
-```powershell
-# Make an unstaged edit
-Add-Content main.py "`n# scratch change"
+Make an unstaged edit, then diff:
 
-arc diff                 # workdir vs index (unstaged)
+```bat
+echo.>> main.py
+echo # scratch change>> main.py
+
+arc diff
 arc add main.py
-arc diff --staged        # index vs HEAD (staged)
-arc diff --stat          # names + change summary only
-arc diff HEAD~ HEAD      # NOTE: Arcane resolves refs/hashes, not ~ syntax — use two hashes:
-arc log --oneline        #   grab two hashes, then:
-arc diff <hashA> <hashB> # diff between two commits
+arc diff --staged
+arc diff --stat
+```
+
+To diff between two commits, note that Arcane resolves refs/tags/hashes but **not** `~`
+ancestry syntax — grab two hashes from the log and pass them directly:
+
+```bat
+arc log --oneline
+arc diff <hashA> <hashB>
 ```
 
 ---
@@ -494,20 +520,20 @@ By the end you should have exercised:
 
 Back in the Arcane source repo, all of the above is covered by automated tests:
 
-```powershell
-Set-Location D:\projects\arcane
-.venv\Scripts\pytest                       # full suite
-.venv\Scripts\pytest tests/features/ -v    # CIT / DAC / LLA feature tests
-.venv\Scripts\pytest tests/integration/ -v # end-to-end flows
+```bat
+cd /d D:\projects\arcane
+.venv\Scripts\pytest
+.venv\Scripts\pytest tests/features/ -v
+.venv\Scripts\pytest tests/integration/ -v
 ```
 
 ---
 
 ## 14. Tear down
 
-```powershell
-Remove-Item -Recurse -Force D:\projects\taskflow-demo
+```bat
+rmdir /s /q D:\projects\taskflow-demo
 ```
 
-That removes the entire sandbox (Arcane keeps everything inside `.arcane/`, so deleting
+That removes the entire sandbox (Arcane keeps everything inside `.arcane\`, so deleting
 the folder is a clean reset).
