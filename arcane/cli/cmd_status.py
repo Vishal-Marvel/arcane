@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import click
-from rich.text import Text
 
 from arcane.core.diff import diff_index_vs_head
 from arcane.core.repository import Repository, NotARepositoryError
@@ -14,7 +13,7 @@ STATUS_COLORS = {"A": "green", "M": "yellow", "D": "red"}
 
 
 @click.command("status")
-@click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON (for tooling/editors).")
+@click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON for tooling.")
 def status(as_json: bool) -> None:
     """Show the status of files in the index and working directory."""
     try:
