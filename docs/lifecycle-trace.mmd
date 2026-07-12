@@ -1,0 +1,66 @@
+%% Arcane lifecycle: init -> add -> commit -> merge
+%% Render: npx @mermaid-js/mermaid-cli -i lifecycle-trace.mmd -o lifecycle-trace.svg
+%% Or paste into https://mermaid.live
+flowchart TD
+    subgraph INIT["arc init  (cmd_init.py -> Repository.init)"]
+        I1["ensure_dir: objects/, refs/heads/, refs/tags/, annotations/"]
+        I2["write HEAD = 'ref: refs/heads/main' (main not born yet)"]
+        I1 --> I2
+    end
+
+    subgraph ADD["arc add  (cmd_add.py)"]
+        A1["Repository.discover (walk up to .arcane)"]
+        A2["read file bytes -> Blob(content)"]
+        A3["store.write(blob) -> blob_hash  (skip if path exists = dedup)"]
+        A4["Index.add: lock -> IndexEntry(path,hash,mode,size,mtime) -> save"]
+        A5["DAC check_staged (advisory, never blocks)"]
+        A1 --> A2 --> A3 --> A4 --> A5
+    end
+
+    subgraph COMMIT["arc commit  (cmd_commit.py)"]
+        C1["CIT: enforce intent (feat/fix/refactor/perf/debt/docs/test/chore)"]
+        C2["DAC: build_snapshot -> dep_snapshot_hash (non-blocking)"]
+        C3["_write_tree_recursive: flat index -> nested Trees (bottom-up, sorted)"]
+        C4["parents = HEAD (+ MERGE_HEAD if merging)"]
+        C5["build Commit(tree, parents, intent, dep_snapshot_hash)"]
+        C6["store.write(commit) -> commit_hash"]
+        C7["refs.advance_head -> refs/heads/main (branch born)"]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7
+    end
+
+    subgraph MERGE["arc merge feature  (cmd_merge.py)"]
+        M1["resolve ours = HEAD (O), theirs = feature (T)"]
+        M2["find_merge_base(O,T): bidirectional BFS LCA -> base B"]
+        M3{"classify by base"}
+        M4["base == theirs: already up to date (stop)"]
+        M5["base == ours: FAST-FORWARD - write theirs blobs to workdir, advance_head (no commit)"]
+        M6["merge_trees: union paths, resolve each file by comparing 3 hashes"]
+        M7["all 3 hashes differ -> three_way_merge (SequenceMatcher opcodes)"]
+        M8["_flatten_tree(new_tree) -> atomic_write merged files to workdir"]
+        M9{"has_conflicts?"}
+        M10["set MERGE_HEAD; warn; STOP -> user resolves, add, commit (2 parents)"]
+        M11["auto Commit parents=[O,T]; store.write; advance_head"]
+        M1 --> M2 --> M3
+        M3 -->|base==theirs| M4
+        M3 -->|base==ours| M5
+        M3 -->|diverged| M6 --> M7 --> M8 --> M9
+        M9 -->|yes| M10
+        M9 -->|no| M11
+    end
+
+    INIT --> ADD --> COMMIT --> MERGE
+
+    subgraph STORE[".arcane/objects/AB/CDEF...  (1-byte prefix + zlib(msgpack))"]
+        S1["Blob 0x01 - raw file content"]
+        S2["Tree 0x02 - sorted TreeEntry list"]
+        S3["Commit 0x03 - tree + parents + intent + dep_hash"]
+        S4["dep_snapshot 0x05 - dependency graph"]
+    end
+
+    A3 -.writes.-> S1
+    C3 -.writes.-> S2
+    C6 -.writes.-> S3
+    C2 -.writes.-> S4
+    M6 -.writes merged.-> S1
+    M6 -.rebuilds.-> S2
+    M11 -.writes.-> S3
